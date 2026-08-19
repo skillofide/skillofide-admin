@@ -1,0 +1,18 @@
+# Standalone compose for the admin panel. It proxies /api to the api-gateway.
+#
+# If the backend (dashbord_backend) compose is running on the same host, the
+# simplest wiring is via host.docker.internal. To instead share the backend's
+# docker network, set API_UPSTREAM=http://api-gateway:8080 and attach this
+# service to that external network.
+services:
+  admin:
+    build: .
+    ports:
+      - "5174:80"
+    environment:
+      # macOS/Windows Docker Desktop resolves host.docker.internal to the host,
+      # where the gateway is published on :8080.
+      API_UPSTREAM: "http://host.docker.internal:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
