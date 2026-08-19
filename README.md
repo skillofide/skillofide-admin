@@ -48,3 +48,31 @@ go run add-user.go admin@knovate.com "Admin User" <password> admin
 ```bash
 npm run build        # outputs to dist/
 ```
+
+## Deployment (Docker)
+A production image builds the SPA and serves it via nginx, which also proxies
+`/api/*` to the gateway.
+```bash
+docker compose up -d --build     # serves on http://localhost:5174
+```
+`nginx.conf.template` reads `API_UPSTREAM` (injected at container start). The
+compose file defaults it to `http://host.docker.internal:8080` (the gateway
+published on the host). To run on the backend's own docker network instead, set
+`API_UPSTREAM=http://api-gateway:8080` and attach the service to that network.
+
+## Backend dependency
+This app needs one small change already applied to `dashbord_backend`:
+`services/api-gateway/graph/resolvers/admin.go` now (a) persists `phone` on
+bulk-import, (b) accepts name/email/phone in `PATCH /api/admin/users/{id}`, and
+(c) serves `GET /api/admin/courses`. Rebuild the gateway after pulling:
+`docker compose up -d --build api-gateway`.
+
+## Notes
+- **`xlsx` advisories:** the SheetJS npm package (0.18.5) carries known prototype-
+  pollution / ReDoS advisories with no fixed npm release. Files here are uploaded
+  by trusted admins, so exposure is low, but for hardening pin to SheetJS's own
+  CDN build (https://cdn.sheetjs.com) which ships the patched version.
+- **Descriptive sections** draw their prompts from the MCQ bank and are graded
+  manually after the attempt (the platform has no separate descriptive authoring).
+- **Coding sections** attach problems from the problem-service; seed problems
+  (`dashbord_backend/seed-problems.go`) for the picker to show anything.
