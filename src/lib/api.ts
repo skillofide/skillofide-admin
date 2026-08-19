@@ -124,6 +124,40 @@ export const revokeCourse = (id: string, courseId: string) =>
     `/api/admin/users/${id}/courses/${encodeURIComponent(courseId)}`,
   );
 
+// ─── Enquiries (marketing-site contact form leads) ──────────────────────────
+
+export interface Inquiry {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  whatsapp: string;
+  interest: string;
+  message: string;
+  source: string;
+  page_url: string;
+  status: string; // new | contacted | closed
+  notes: string;
+  created_at: string;
+}
+
+export interface ListInquiriesResponse {
+  inquiries: Inquiry[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export const listInquiries = (page = 1, pageSize = 25, status = '', search = '') => {
+  const q = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  if (status) q.set('status', status);
+  if (search) q.set('search', search);
+  return request<ListInquiriesResponse>('GET', `/api/admin/inquiries?${q.toString()}`);
+};
+
+export const updateInquiry = (id: string, patch: { status?: string; notes?: string }) =>
+  request<{ success: boolean }>('PATCH', `/api/admin/inquiries/${id}`, patch);
+
 // ─── Course catalog ─────────────────────────────────────────────────────────
 
 export interface CourseDto {

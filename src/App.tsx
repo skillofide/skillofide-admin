@@ -8,6 +8,7 @@ import BulkImport from './pages/Import/BulkImport';
 import TestList from './pages/Tests/TestList';
 import TestEditor from './pages/Tests/TestEditor';
 import McqList from './pages/McqBank/McqList';
+import InquiryList from './pages/Inquiries/InquiryList';
 import Results from './pages/Results/AttemptList';
 
 const RequireAdmin: React.FC<{ children: React.ReactElement }> = ({ children }) =>
@@ -27,6 +28,7 @@ const App: React.FC = () => {
     <Route path="/tests/:id" element={<RequireAdmin><TestEditor /></RequireAdmin>} />
     <Route path="/tests/:id/results" element={<RequireAdmin><Results /></RequireAdmin>} />
     <Route path="/mcq-bank" element={<RequireAdmin><McqList /></RequireAdmin>} />
+    <Route path="/enquiries" element={<RequireAdmin><InquiryList /></RequireAdmin>} />
     <Route path="*" element={<Navigate to={isAdmin() ? '/users' : '/login'} replace />} />
   </Routes>
   );

@@ -7,6 +7,7 @@ const links = [
   { to: '/import', label: 'Bulk Import' },
   { to: '/tests', label: 'Tests' },
   { to: '/mcq-bank', label: 'Question Bank' },
+  { to: '/enquiries', label: 'Enquiries' },
 ];
 
 const Layout: React.FC<{ title: string; actions?: React.ReactNode; children: React.ReactNode }> = ({
