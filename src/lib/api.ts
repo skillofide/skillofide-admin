@@ -75,6 +75,10 @@ export interface ImportRowResult {
   email: string;
   success: boolean;
   message: string;
+  /** Whether a welcome email was actually dispatched to this address. */
+  emailed?: boolean;
+  /** True for a newly created account, false for one that already existed. */
+  is_new_user?: boolean;
 }
 
 export interface BulkImportResponse {
@@ -92,8 +96,11 @@ export const listUsers = (page = 1, pageSize = 50, search = '') =>
     `/api/admin/users?page=${page}&page_size=${pageSize}&search=${encodeURIComponent(search)}`,
   );
 
-export const bulkImport = (users: ImportUserRow[]) =>
-  request<BulkImportResponse>('POST', '/api/admin/bulk-import', { users });
+export const bulkImport = (users: ImportUserRow[], sendWelcome = false) =>
+  request<BulkImportResponse>('POST', '/api/admin/bulk-import', {
+    users,
+    send_welcome: sendWelcome,
+  });
 
 export const updateUserRole = (id: string, role: string) =>
   request<{ success: boolean }>('PATCH', `/api/admin/users/${id}`, { role });
