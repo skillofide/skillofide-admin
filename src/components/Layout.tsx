@@ -8,6 +8,8 @@ const links = [
   { to: '/tests', label: 'Tests' },
   { to: '/mcq-bank', label: 'Question Bank' },
   { to: '/enquiries', label: 'Enquiries' },
+  { to: '/scholarship', label: 'Scholarship' },
+  { to: '/scholarship/programmes', label: 'Programmes' },
 ];
 
 const Layout: React.FC<{ title: string; actions?: React.ReactNode; children: React.ReactNode }> = ({
@@ -29,7 +31,10 @@ const Layout: React.FC<{ title: string; actions?: React.ReactNode; children: Rea
         <div className="brand">Knovate Admin</div>
         <nav>
           {links.map((l) => (
-            <NavLink key={l.to} to={l.to} className={({ isActive }) => (isActive ? 'active' : '')}>
+            // `end` on every link: without it /scholarship stays highlighted
+            // while you are on /scholarship/programmes, so the sidebar shows two
+            // active items and neither tells you where you are.
+            <NavLink key={l.to} to={l.to} end className={({ isActive }) => (isActive ? 'active' : '')}>
               {l.label}
             </NavLink>
           ))}

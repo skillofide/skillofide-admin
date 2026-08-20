@@ -216,7 +216,7 @@ export interface Assessment {
   company_id?: string;
   title: string;
   description?: string;
-  purpose?: string; // practice | hiring
+  purpose?: string; // practice | hiring | scholarship
   duration_minutes: number;
   total_marks?: number;
   passing_marks?: number;
@@ -380,3 +380,159 @@ export async function downloadResultsCsv(
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+// ─── Scholarship ──────────────────────────────────────────────────────────────
+
+export interface ScholarshipApplication {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  course_id: string;
+  course_name: string;
+  qualification: string;
+  college: string;
+  graduation_year: number | null;
+  city: string;
+  /** Derived from the candidate's attempt, not stored — see the gateway handler. */
+  status: string;
+  attempt_id: string;
+  score: number | null;
+  max_score: number | null;
+  percentage: number | null;
+  award_percent: number | null;
+  notes: string;
+  created_at: string;
+}
+
+export interface ListScholarshipsResponse {
+  applications: ScholarshipApplication[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface AwardSlab {
+  minPercent: number;
+  awardPercent: number;
+}
+
+export interface ScholarshipProgram {
+  id: string;
+  course_id: string;
+  course_name: string;
+  assessment_id: string;
+  assessment_title: string;
+  /** 'missing' when the mapped assessment no longer exists. */
+  assessment_status: string;
+  is_active: boolean;
+  opens_at?: string;
+  closes_at?: string;
+  seats: number;
+  used: number;
+  award_slabs: AwardSlab[];
+}
+
+export interface ScholarshipFilters {
+  status?: string;
+  courseId?: string;
+  search?: string;
+  minPercent?: string;
+}
+
+function scholarshipQuery(f: ScholarshipFilters): URLSearchParams {
+  const q = new URLSearchParams();
+  if (f.status) q.set('status', f.status);
+  if (f.courseId) q.set('courseId', f.courseId);
+  if (f.search) q.set('search', f.search);
+  if (f.minPercent) q.set('minPercent', f.minPercent);
+  return q;
+}
+
+export const listScholarships = (page = 1, pageSize = 25, f: ScholarshipFilters = {}) => {
+  const q = scholarshipQuery(f);
+  q.set('page', String(page));
+  q.set('pageSize', String(pageSize));
+  return request<ListScholarshipsResponse>('GET', `/api/admin/scholarships?${q}`);
+};
+
+export const updateScholarship = (
+  id: string,
+  patch: { status?: string; award_percent?: number | null; notes?: string },
+) => request<{ success: boolean }>('PATCH', `/api/admin/scholarships/${id}`, patch);
+
+/**
+ * Downloads the CSV for whatever the screen is currently filtered to.
+ *
+ * It cannot be a plain link: the endpoint needs the Bearer token, and an <a>
+ * carries no headers. So the file is fetched, turned into an object URL and
+ * clicked — and the URL is revoked afterwards so the blob is not held for the
+ * life of the tab.
+ */
+export async function exportScholarshipsCsv(f: ScholarshipFilters = {}): Promise<void> {
+  const token = getToken();
+  const resp = await fetch(`/api/admin/scholarships/export.csv?${scholarshipQuery(f)}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (resp.status === 401) {
+    logout();
+    window.location.href = '/login';
+    throw new Error('Session expired. Please sign in again.');
+  }
+  if (!resp.ok) throw new Error(`Export failed (${resp.status})`);
+
+  const blob = await resp.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `scholarship-applications-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export const listScholarshipPrograms = () =>
+  request<{ programs: ScholarshipProgram[] }>('GET', '/api/admin/scholarship-programs');
+
+export const upsertScholarshipProgram = (p: {
+  course_id: string;
+  course_name: string;
+  assessment_id: string;
+  is_active?: boolean;
+  opens_at?: string;
+  closes_at?: string;
+  seats?: number;
+  award_slabs?: AwardSlab[];
+}) => request<{ success: boolean; id: string }>('POST', '/api/admin/scholarship-programs', p);
+
+export interface ResendResult {
+  success: boolean;
+  email: string;
+  /** The freshly issued link. Shown to staff so a broken mailbox is not a dead end. */
+  testUrl: string;
+  expires: string;
+}
+
+/**
+ * Issues a new test link and emails it again.
+ *
+ * The old link stops working — this is a reissued credential, not a copy of the
+ * previous one — which is also what makes it the fix for an expired link rather
+ * than only a lost one.
+ */
+export const resendScholarshipLink = (id: string) =>
+  request<ResendResult>('POST', `/api/admin/scholarships/${id}/resend`);
+
+/**
+ * Removes an application, its invitation and any attempt at that paper.
+ *
+ * The candidate's account only goes with it when this funnel created it and
+ * nothing else depends on it — a scholarship applicant is often a real student
+ * with courses, and their account is not a by-product of this row.
+ */
+export const deleteScholarship = (id: string) =>
+  request<{ success: boolean; email: string; accountRemoved: boolean }>(
+    'DELETE',
+    `/api/admin/scholarships/${id}`,
+  );
