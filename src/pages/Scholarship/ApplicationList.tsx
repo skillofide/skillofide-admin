@@ -5,6 +5,7 @@ import Confirm from '../../components/Confirm';
 import { useToast } from '../../components/Toast';
 import {
   deleteScholarship,
+  enrolScholarshipApplicant,
   exportScholarshipsCsv,
   listScholarships,
   resendScholarshipLink,
@@ -191,6 +192,7 @@ const ApplicationDrawer: React.FC<{
   const [freshLink, setFreshLink] = useState('');
   const [sendError, setSendError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmEnrol, setConfirmEnrol] = useState(false);
 
   const p = pct(a);
   const sat = p != null;
@@ -245,6 +247,20 @@ const ApplicationDrawer: React.FC<{
       push('error', e.message);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const enrol = async () => {
+    setBusy(true);
+    try {
+      const res = await enrolScholarshipApplicant(a.id);
+      push('success', `${res.email} enrolled on ${res.courseName}`);
+      onChanged();
+    } catch (e: any) {
+      push('error', e.message);
+    } finally {
+      setBusy(false);
+      setConfirmEnrol(false);
     }
   };
 
@@ -381,12 +397,41 @@ const ApplicationDrawer: React.FC<{
 
       <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '16px 0' }} />
 
+      {/* An applicant is not a student. This is where that changes, and it is a
+          button somebody presses once the fee is settled — not something the
+          test result does on its own. */}
+      <div className="field">
+        <label>Enrolment</label>
+        <p className="muted" style={{ margin: '0 0 8px', fontSize: 12.5 }}>
+          Applying does not create a student. Enrol them once they have passed
+          <strong> and paid</strong> — this grants the course and puts them in Users.
+        </p>
+        <button className="secondary sm" disabled={busy} onClick={() => setConfirmEnrol(true)}>
+          Enrol as student
+        </button>
+      </div>
+
+      <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '16px 0' }} />
+
       <div className="row between" style={{ alignItems: 'center' }}>
         <button className="danger sm" disabled={busy} onClick={() => setConfirmDelete(true)}>
           Delete application
         </button>
         <button className="secondary" onClick={onClose}>Close</button>
       </div>
+
+      {confirmEnrol && (
+        <Confirm
+          title={`Enrol ${a.name}?`}
+          message={
+            `This makes ${a.email} a student and grants them ${a.course_name}. ` +
+            `Only do this once their fee is settled — enrolment is not automatic on passing.`
+          }
+          confirmLabel="Enrol"
+          onConfirm={enrol}
+          onCancel={() => setConfirmEnrol(false)}
+        />
+      )}
 
       {confirmDelete && (
         <Confirm

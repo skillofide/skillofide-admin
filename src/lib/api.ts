@@ -539,3 +539,15 @@ export const deleteScholarship = (id: string) =>
     'DELETE',
     `/api/admin/scholarships/${id}`,
   );
+
+/**
+ * Turns an applicant into a student and grants the course they applied for.
+ *
+ * Deliberately a separate, manual step: passing the test is not enrolment — the
+ * fee still has to be paid, and only a person knows whether it has been.
+ */
+export const enrolScholarshipApplicant = (id: string) =>
+  request<{ success: boolean; email: string; courseName: string }>(
+    'POST',
+    `/api/admin/scholarships/${id}/enrol`,
+  );
