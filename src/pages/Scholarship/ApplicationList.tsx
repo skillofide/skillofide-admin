@@ -189,6 +189,7 @@ const ApplicationDrawer: React.FC<{
   const [busy, setBusy] = useState(false);
   const [resending, setResending] = useState(false);
   const [freshLink, setFreshLink] = useState('');
+  const [sendError, setSendError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const p = pct(a);
@@ -196,10 +197,18 @@ const ApplicationDrawer: React.FC<{
 
   const resend = async () => {
     setResending(true);
+    setSendError('');
     try {
       const res = await resendScholarshipLink(a.id);
+      // A new link is always issued; whether the email carrying it left is a
+      // separate fact, and the counsellor has to know which happened.
       setFreshLink(res.testUrl);
-      push('success', `New link emailed to ${res.email}`);
+      if (res.success) {
+        push('success', `New link emailed to ${res.email}`);
+      } else {
+        setSendError(res.emailError || 'The mail server refused the message.');
+        push('error', `Link created, but the email did not send to ${res.email}`);
+      }
       onChanged();
     } catch (e: any) {
       push('error', e.message);
@@ -307,6 +316,13 @@ const ApplicationDrawer: React.FC<{
             <p className="muted" style={{ fontSize: 12, margin: '6px 0 0' }}>
               Emails a fresh link, valid for another 3 days. Any earlier link stops working.
             </p>
+            {sendError && (
+              <p style={{ margin: '8px 0 0', fontSize: 12.5, color: 'var(--danger)' }}>
+                <strong>The email did not send.</strong> {sendError}
+                <br />
+                The link below is still valid — send it to them another way.
+              </p>
+            )}
             {freshLink && (
               <div style={{ marginTop: 10 }}>
                 <p className="muted" style={{ fontSize: 12, margin: '0 0 4px' }}>

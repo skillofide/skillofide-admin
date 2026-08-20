@@ -507,11 +507,14 @@ export const upsertScholarshipProgram = (p: {
 }) => request<{ success: boolean; id: string }>('POST', '/api/admin/scholarship-programs', p);
 
 export interface ResendResult {
+  /** False when the relay refused the message. The link is still valid. */
   success: boolean;
   email: string;
   /** The freshly issued link. Shown to staff so a broken mailbox is not a dead end. */
   testUrl: string;
   expires: string;
+  /** Why the send failed, when it did. */
+  emailError?: string;
 }
 
 /**
